@@ -502,3 +502,128 @@ select {
   clip: rect(0, 0, 0, 0);
   border: 0;
 }
+
+/* —— Liquorland cab UX additions —— */
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.chip {
+  min-height: 48px;
+  padding: 0.55rem 1rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-elev);
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  flex: 1 1 auto;
+}
+
+.chip--accent {
+  border-color: rgba(255, 191, 0, 0.35);
+}
+
+.chip--on {
+  background: rgba(255, 191, 0, 0.2);
+  border-color: rgba(255, 191, 0, 0.55);
+  color: var(--accent-hi);
+}
+
+.chip:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.geo-msg {
+  margin: 0;
+}
+
+.zone-card--tap {
+  min-height: 96px;
+  padding: 1.1rem 1.05rem;
+}
+
+.zone-card__suburb-strong {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.zone-card__region {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.zone-card__dist {
+  flex-shrink: 0;
+  align-self: flex-start;
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--accent-hi);
+  background: rgba(255, 191, 0, 0.12);
+  border: 1px solid rgba(255, 191, 0, 0.3);
+  border-radius: 10px;
+  padding: 0.35rem 0.55rem;
+  line-height: 1.2;
+}
+
+.zone-card__name {
+  font-size: 1.12rem;
+}
+
+.tag--ok {
+  color: var(--ok);
+  border-color: rgba(61, 214, 140, 0.35);
+}
+
+.tag--park {
+  color: #7ec8ff;
+  border-color: rgba(126, 200, 255, 0.35);
+}
+
+.detail__suburb-strong {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.detail__tips {
+  margin: 0;
+  padding-left: 1.15rem;
+  color: var(--text);
+}
+
+.detail__tips li + li {
+  margin-top: 0.25rem;
+}
+
+.lzr-pin--store {
+  background: var(--accent);
+}
+
+.lzr-pin--dock {
+  background: var(--ok);
+}
+
+.lzr-pin--park {
+  background: #7ec8ff;
+  border-radius: 6px;
+  transform: none;
+}
+
+.lzr-pin--park::after {
+  top: 7px;
+  left: 7px;
+}

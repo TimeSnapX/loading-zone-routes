@@ -1,38 +1,142 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { SearchBar } from '../components/SearchBar'
 import { ZoneCard } from '../components/ZoneCard'
 import { ZoneMap } from '../components/ZoneMap'
-import type { Zone } from '../types/zone'
+import { distanceKm, formatDistanceKm } from '../lib/geo'
+import { destCoords, isLiquorland, type Zone } from '../types/zone'
 
 interface Props {
   zones: Zone[]
 }
 
+type GeoState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'ready'; lat: number; lng: number }
+  | { status: 'denied'; message: string }
+
 export function HomePage({ zones }: Props) {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
-  const [tab, setTab] = useState<'map' | 'list'>('map')
+  const [tab, setTab] = useState<'map' | 'list'>('list')
   const [selectedId, setSelectedId] = useState<string | undefined>()
+  const [liquorlandOnly, setLiquorlandOnly] = useState(true)
+  const [nearestOn, setNearestOn] = useState(false)
+  const [geo, setGeo] = useState<GeoState>({ status: 'idle' })
+
+  const requestNearest = useCallback(() => {
+    if (!navigator.geolocation) {
+      setGeo({ status: 'denied', message: 'Geolocation not supported on this device.' })
+      setNearestOn(false)
+      return
+    }
+    setGeo({ status: 'loading' })
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setGeo({
+          status: 'ready',
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        })
+        setNearestOn(true)
+        setTab('list')
+      },
+      (err) => {
+        setNearestOn(false)
+        setGeo({
+          status: 'denied',
+          message:
+            err.code === err.PERMISSION_DENIED
+              ? 'Location denied — search by suburb instead.'
+              : 'Could not get location — try again or search by suburb.',
+        })
+      },
+      { enableHighAccuracy: false, timeout: 12000, maximumAge: 60_000 },
+    )
+  }, [])
 
   const filtered = useMemo(() => {
+    let list = zones
+    if (liquorlandOnly) list = list.filter(isLiquorland)
+
     const q = query.trim().toLowerCase()
-    if (!q) return zones
-    return zones.filter(
-      (z) =>
-        z.name.toLowerCase().includes(q) ||
-        z.suburb.toLowerCase().includes(q) ||
-        z.address.toLowerCase().includes(q),
-    )
-  }, [zones, query])
+    if (q) {
+      list = list.filter(
+        (z) =>
+          z.name.toLowerCase().includes(q) ||
+          z.suburb.toLowerCase().includes(q) ||
+          z.region.toLowerCase().includes(q) ||
+          z.brand.toLowerCase().includes(q),
+      )
+    }
+
+    if (nearestOn && geo.status === 'ready') {
+      const { lat, lng } = geo
+      list = [...list].sort((a, b) => {
+        const da = destCoords(a)
+        const db = destCoords(b)
+        return distanceKm(lat, lng, da.lat, da.lng) - distanceKm(lat, lng, db.lat, db.lng)
+      })
+    } else {
+      list = [...list].sort((a, b) =>
+        a.suburb.localeCompare(b.suburb) || a.name.localeCompare(b.name),
+      )
+    }
+
+    return list
+  }, [zones, liquorlandOnly, query, nearestOn, geo])
+
+  const distLabel = (z: Zone): string | null => {
+    if (!nearestOn || geo.status !== 'ready') return null
+    const d = destCoords(z)
+    return formatDistanceKm(distanceKm(geo.lat, geo.lng, d.lat, d.lng))
+  }
 
   return (
     <div className="page">
       <div className="badge" role="status">
-        Starter zones — refine from real drops
+        Liquorland docks · SEQ cab helper — refine from real drops
       </div>
 
       <SearchBar value={query} onChange={setQuery} />
+
+      <div className="filter-row" role="group" aria-label="Filters">
+        <button
+          type="button"
+          className={`chip ${liquorlandOnly ? 'chip--on' : ''}`}
+          aria-pressed={liquorlandOnly}
+          onClick={() => setLiquorlandOnly((v) => !v)}
+        >
+          Liquorland only
+        </button>
+        <button
+          type="button"
+          className={`chip chip--accent ${nearestOn && geo.status === 'ready' ? 'chip--on' : ''}`}
+          aria-pressed={nearestOn && geo.status === 'ready'}
+          disabled={geo.status === 'loading'}
+          onClick={() => {
+            if (nearestOn && geo.status === 'ready') {
+              setNearestOn(false)
+              return
+            }
+            requestNearest()
+          }}
+        >
+          {geo.status === 'loading' ? 'Locating…' : nearestOn ? 'Nearest ✓' : 'Nearest'}
+        </button>
+      </div>
+
+      {geo.status === 'denied' ? (
+        <p className="muted geo-msg" role="status">
+          {geo.message}
+        </p>
+      ) : null}
+      {nearestOn && geo.status === 'ready' ? (
+        <p className="muted geo-msg" role="status">
+          Sorted by distance to dock / store pin from you.
+        </p>
+      ) : null}
 
       <div className="tabs" role="tablist" aria-label="View">
         <button
@@ -65,22 +169,31 @@ export function HomePage({ zones }: Props) {
             }}
           />
           <p className="muted" style={{ margin: 0 }}>
-            {filtered.length} zone{filtered.length === 1 ? '' : 's'}
+            {filtered.length} store{filtered.length === 1 ? '' : 's'}
             {selectedId
-              ? ` · tap a pin, then open below`
+              ? ' · tap a pin, then open below'
               : ' · tap a pin or switch to List'}
           </p>
           {selectedId ? (
             (() => {
               const z = filtered.find((x) => x.id === selectedId)
               return z ? (
-                <ZoneCard zone={z} onClick={() => navigate(`/zone/${z.id}`)} />
+                <ZoneCard
+                  zone={z}
+                  distanceLabel={distLabel(z)}
+                  onClick={() => navigate(`/zone/${z.id}`)}
+                />
               ) : null
             })()
           ) : (
             <div className="list">
               {filtered.slice(0, 3).map((z) => (
-                <ZoneCard key={z.id} zone={z} onClick={() => navigate(`/zone/${z.id}`)} />
+                <ZoneCard
+                  key={z.id}
+                  zone={z}
+                  distanceLabel={distLabel(z)}
+                  onClick={() => navigate(`/zone/${z.id}`)}
+                />
               ))}
               {filtered.length > 3 ? (
                 <button
@@ -97,10 +210,19 @@ export function HomePage({ zones }: Props) {
       ) : (
         <div className="list">
           {filtered.length === 0 ? (
-            <div className="card empty">No zones match “{query}”.</div>
+            <div className="card empty">
+              No stores match
+              {query ? ` “${query}”` : ''}
+              {liquorlandOnly ? ' (Liquorland only on)' : ''}.
+            </div>
           ) : (
             filtered.map((z) => (
-              <ZoneCard key={z.id} zone={z} onClick={() => navigate(`/zone/${z.id}`)} />
+              <ZoneCard
+                key={z.id}
+                zone={z}
+                distanceLabel={distLabel(z)}
+                onClick={() => navigate(`/zone/${z.id}`)}
+              />
             ))
           )}
         </div>
@@ -112,7 +234,7 @@ export function HomePage({ zones }: Props) {
           className="btn btn--primary btn--block"
           onClick={() => navigate('/add')}
         >
-          + Add custom zone
+          + Add custom store
         </button>
       </div>
     </div>

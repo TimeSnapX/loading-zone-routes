@@ -1,7 +1,12 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { openDirections } from '../lib/maps'
-import type { Zone, ZoneNotesMap } from '../types/zone'
+import {
+  destCoords,
+  hasParkCoords,
+  type Zone,
+  type ZoneNotesMap,
+} from '../types/zone'
 import { ZoneMap } from '../components/ZoneMap'
 
 interface Props {
@@ -25,7 +30,9 @@ export function ZoneDetailPage({
   const [editingNote, setEditingNote] = useState(false)
   const [noteDraft, setNoteDraft] = useState(notes[id] ?? '')
   const [editingTips, setEditingTips] = useState(false)
-  const [tipsDraft, setTipsDraft] = useState(zone?.tips ?? '')
+  const [tipsDraft, setTipsDraft] = useState(
+    zone ? zone.tips.join('\n') : '',
+  )
 
   if (!zone) {
     return (
@@ -33,12 +40,14 @@ export function ZoneDetailPage({
         <Link to="/" className="detail__back">
           ← Back
         </Link>
-        <div className="card empty">Zone not found.</div>
+        <div className="card empty">Store not found.</div>
       </div>
     )
   }
 
   const personalNote = notes[zone.id] ?? ''
+  const dest = destCoords(zone)
+  const parkOk = hasParkCoords(zone)
 
   return (
     <div className="page">
@@ -47,26 +56,69 @@ export function ZoneDetailPage({
       </button>
 
       <header>
+        <p className="detail__suburb-strong">{zone.suburb}</p>
         <h1 className="detail__name">{zone.name}</h1>
         <p className="detail__suburb">
-          {zone.suburb}
-          {zone.address ? ` · ${zone.address}` : ''}
+          {zone.brand}
+          {zone.region ? ` · ${zone.region}` : ''}
         </p>
         <div className="zone-card__tags" style={{ marginTop: '0.55rem' }}>
           {zone.starter ? <span className="badge">Starter data</span> : null}
           {zone.custom ? <span className="badge badge--muted">Custom</span> : null}
+          <span className="badge badge--muted">
+            {dest.kind === 'dock' ? 'Dock pin ready' : 'Store pin · dock TBD'}
+          </span>
         </div>
       </header>
 
-      <ZoneMap zones={[zone]} selectedId={zone.id} />
+      <ZoneMap zones={[zone]} selectedId={zone.id} showParkMarkers />
 
-      <button
-        type="button"
-        className="btn btn--primary btn--block"
-        onClick={() => openDirections(zone.lat, zone.lng, zone.address)}
-      >
-        Get there → Google Maps
-      </button>
+      <div className="btn-row">
+        <button
+          type="button"
+          className="btn btn--primary btn--block"
+          onClick={() =>
+            openDirections(dest.lat, dest.lng, `${zone.name} ${zone.suburb}`)
+          }
+        >
+          Get there → {dest.kind === 'dock' ? 'Dock' : 'Store'} (Maps)
+        </button>
+        {parkOk ? (
+          <button
+            type="button"
+            className="btn btn--secondary btn--block"
+            onClick={() =>
+              openDirections(
+                zone.parkLat!,
+                zone.parkLng!,
+                `Park-up ${zone.name}`,
+              )
+            }
+          >
+            Park-up → Maps
+          </button>
+        ) : null}
+      </div>
+
+      <section className="card detail__section">
+        <p className="detail__label">Dock notes</p>
+        <p className="detail__body">{zone.dockNotes || '—'}</p>
+        {dest.kind === 'store' ? (
+          <p className="muted" style={{ margin: 0 }}>
+            No verified dock GPS yet — Get there uses the store pin.
+          </p>
+        ) : null}
+      </section>
+
+      <section className="card detail__section">
+        <p className="detail__label">Best park for storefront</p>
+        <p className="detail__body">{zone.parkNotes || '—'}</p>
+        {!parkOk ? (
+          <p className="muted" style={{ margin: 0 }}>
+            No park-up coords yet — guidance above only.
+          </p>
+        ) : null}
+      </section>
 
       <section className="card detail__section">
         <p className="detail__label">Access notes</p>
@@ -75,12 +127,12 @@ export function ZoneDetailPage({
 
       <section className="card detail__section">
         <p className="detail__label">Typical window</p>
-        <p className="detail__body">{zone.typicalWindow || '—'}</p>
+        <p className="detail__body">{zone.window || '—'}</p>
       </section>
 
       <section className="card detail__section">
         <p className="detail__label">Truck constraints</p>
-        <p className="detail__body">{zone.truckConstraints || '—'}</p>
+        <p className="detail__body">{zone.constraints || '—'}</p>
       </section>
 
       <section className="card detail__section">
@@ -91,7 +143,7 @@ export function ZoneDetailPage({
             className="btn btn--ghost"
             style={{ minHeight: 36, padding: '0.35rem 0.7rem', fontSize: '0.85rem' }}
             onClick={() => {
-              setTipsDraft(zone.tips)
+              setTipsDraft(zone.tips.join('\n'))
               setEditingTips((v) => !v)
             }}
           >
@@ -104,20 +156,31 @@ export function ZoneDetailPage({
               value={tipsDraft}
               onChange={(e) => setTipsDraft(e.target.value)}
               rows={3}
+              placeholder="One tip per line"
             />
             <button
               type="button"
               className="btn btn--secondary btn--block"
               onClick={() => {
-                updateZone(zone.id, { tips: tipsDraft.trim() })
+                const tips = tipsDraft
+                  .split('\n')
+                  .map((t) => t.trim())
+                  .filter(Boolean)
+                updateZone(zone.id, { tips })
                 setEditingTips(false)
               }}
             >
               Save tips
             </button>
           </div>
+        ) : zone.tips.length ? (
+          <ul className="detail__tips">
+            {zone.tips.map((t) => (
+              <li key={t}>{t}</li>
+            ))}
+          </ul>
         ) : (
-          <p className="detail__body">{zone.tips || '—'}</p>
+          <p className="detail__body">—</p>
         )}
       </section>
 
@@ -169,7 +232,7 @@ export function ZoneDetailPage({
             className="btn btn--secondary btn--block"
             onClick={() => navigate(`/edit/${zone.id}`)}
           >
-            Edit custom zone
+            Edit custom store
           </button>
           <button
             type="button"
@@ -181,7 +244,7 @@ export function ZoneDetailPage({
               }
             }}
           >
-            Delete custom zone
+            Delete custom store
           </button>
         </div>
       ) : (
@@ -190,7 +253,7 @@ export function ZoneDetailPage({
           className="btn btn--secondary btn--block"
           onClick={() => navigate(`/edit/${zone.id}`)}
         >
-          Edit zone details
+          Edit store details
         </button>
       )}
     </div>

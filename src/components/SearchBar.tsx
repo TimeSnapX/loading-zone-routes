@@ -4,11 +4,15 @@ interface Props {
   placeholder?: string
 }
 
-export function SearchBar({ value, onChange, placeholder = 'Search name or suburb…' }: Props) {
+export function SearchBar({
+  value,
+  onChange,
+  placeholder = 'Search store or suburb…',
+}: Props) {
   return (
     <div className="search">
       <label className="sr-only" htmlFor="zone-search">
-        Search zones
+        Search stores
       </label>
       <input
         id="zone-search"

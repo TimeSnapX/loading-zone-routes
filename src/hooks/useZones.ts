@@ -20,11 +20,46 @@ function writeJson(key: string, value: unknown) {
   localStorage.setItem(key, JSON.stringify(value))
 }
 
-const seed = seedZones as Zone[]
+/** Normalise legacy localStorage / seed shapes into the current Zone model. */
+function normaliseZone(raw: Record<string, unknown>): Zone {
+  const tipsRaw = raw.tips
+  let tips: string[] = []
+  if (Array.isArray(tipsRaw)) tips = tipsRaw.map(String)
+  else if (typeof tipsRaw === 'string' && tipsRaw.trim()) tips = [tipsRaw.trim()]
+
+  const brand =
+    (typeof raw.brand === 'string' && raw.brand) ||
+    (raw.category === 'liquor' ? 'Liquorland' : 'Other')
+
+  return {
+    id: String(raw.id ?? ''),
+    name: String(raw.name ?? ''),
+    brand,
+    suburb: String(raw.suburb ?? ''),
+    region: String(raw.region ?? ''),
+    lat: Number(raw.lat),
+    lng: Number(raw.lng),
+    dockLat: raw.dockLat == null ? null : Number(raw.dockLat),
+    dockLng: raw.dockLng == null ? null : Number(raw.dockLng),
+    dockNotes: String(raw.dockNotes ?? ''),
+    parkLat: raw.parkLat == null ? null : Number(raw.parkLat),
+    parkLng: raw.parkLng == null ? null : Number(raw.parkLng),
+    parkNotes: String(raw.parkNotes ?? ''),
+    accessNotes: String(raw.accessNotes ?? ''),
+    window: String(raw.window ?? raw.typicalWindow ?? ''),
+    constraints: String(raw.constraints ?? raw.truckConstraints ?? ''),
+    tips,
+    tags: Array.isArray(raw.tags) ? raw.tags.map(String) : [],
+    starter: Boolean(raw.starter),
+    custom: Boolean(raw.custom),
+  }
+}
+
+const seed = (seedZones as Partial<Zone>[]).map(normaliseZone)
 
 export function useZones() {
   const [customZones, setCustomZones] = useState<Zone[]>(() =>
-    readJson<Zone[]>(CUSTOM_KEY, []),
+    readJson<Partial<Zone>[]>(CUSTOM_KEY, []).map(normaliseZone),
   )
   const [edits, setEdits] = useState<Record<string, Partial<Zone>>>(() =>
     readJson(EDITS_KEY, {}),
@@ -46,11 +81,11 @@ export function useZones() {
   }, [notes])
 
   const zones = useMemo(() => {
-    const base = seed.map((z) => ({ ...z, ...edits[z.id] }))
+    const base = seed.map((z) => normaliseZone({ ...z, ...edits[z.id] }))
     const customIds = new Set(customZones.map((z) => z.id))
-    // Apply edits to custom zones too
-    const customs = customZones.map((z) => ({ ...z, ...edits[z.id], custom: true }))
-    // Avoid dupes if somehow same id
+    const customs = customZones.map((z) =>
+      normaliseZone({ ...z, ...edits[z.id], custom: true }),
+    )
     return [...base.filter((z) => !customIds.has(z.id)), ...customs]
   }, [customZones, edits])
 
@@ -68,23 +103,29 @@ export function useZones() {
     })
   }, [])
 
-  const addCustomZone = useCallback((zone: Omit<Zone, 'id' | 'custom' | 'starter'>) => {
-    const id = `custom-${Date.now()}`
-    const newZone: Zone = { ...zone, id, custom: true, starter: false }
-    setCustomZones((prev) => [...prev, newZone])
-    return id
-  }, [])
+  const addCustomZone = useCallback(
+    (zone: Omit<Zone, 'id' | 'custom' | 'starter'>) => {
+      const id = `custom-${Date.now()}`
+      const newZone: Zone = { ...zone, id, custom: true, starter: false }
+      setCustomZones((prev) => [...prev, newZone])
+      return id
+    },
+    [],
+  )
 
-  const updateZone = useCallback((id: string, patch: Partial<Zone>) => {
-    const isCustom = customZones.some((z) => z.id === id)
-    if (isCustom) {
-      setCustomZones((prev) =>
-        prev.map((z) => (z.id === id ? { ...z, ...patch } : z)),
-      )
-    } else {
-      setEdits((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }))
-    }
-  }, [customZones])
+  const updateZone = useCallback(
+    (id: string, patch: Partial<Zone>) => {
+      const isCustom = customZones.some((z) => z.id === id)
+      if (isCustom) {
+        setCustomZones((prev) =>
+          prev.map((z) => (z.id === id ? { ...z, ...patch } : z)),
+        )
+      } else {
+        setEdits((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }))
+      }
+    },
+    [customZones],
+  )
 
   const deleteCustomZone = useCallback((id: string) => {
     setCustomZones((prev) => prev.filter((z) => z.id !== id))

@@ -1,18 +1,19 @@
-# Loading Zone Routes (v0)
+# Liquorland Docks (Loading Zone Routes)
 
 Mobile-first static web app for **TimeSnap** (BevChain / Linfox HR driver, Brisbane SEQ).
 
-Narrow wedge: routes and notes for **loading zones** on beverage / supermarket depot runs — not a full truck GPS.
+Cab-focused wedge: **find Liquorland loading docks faster** across SEQ (Brisbane → Gold Coast → Sunshine Coast). Not a full truck GPS.
 
 ## Features
 
-- Home map (Leaflet + OpenStreetMap) + searchable zone list
-- Zone cards: name, suburb, access notes, typical window, truck constraints, tips
-- **Get there** → opens Google Maps directions in a new tab
-- Personal notes + custom zones (persisted in `localStorage`)
-- Starter seed data (~12 SEQ zones) marked clearly for refinement after real drops
+- **Liquorland only** filter (ON by default) — hide / deprioritise non-Liquorland unless you opt in
+- Fast find: search by suburb / store name, **Nearest** (geolocation sort), large tap targets
+- Map + list of filtered stores; pin prefers **dock** coords when known, else store pin
+- Per store: dock notes, **best park for storefront** (+ optional park lat/lng), personal notes
+- **Get there** → Google Maps directions to dock (preferred) or store pin; **Park-up** when park coords exist
+- Personal tips + custom stores / edits in `localStorage` (`lzr-zone-notes`, `lzr-custom-zones`, `lzr-zone-edits`)
 
-**Not in v0:** height-aware routing, low bridges, turn-by-turn engine, national coverage, live traffic.
+**Not in scope:** height-aware routing, low bridges, turn-by-turn engine, invented precise dock GPS.
 
 ## Run locally
 
@@ -37,20 +38,23 @@ Output is `dist/` (includes `.nojekyll` for GitHub Pages). Preview with:
 npm run preview
 ```
 
-## Edit starter zones
-
-Edit `src/data/zones.json` — each entry needs:
+## Data shape (`src/data/zones.json`)
 
 | Field | Notes |
 |-------|--------|
-| `id` | Stable string id |
-| `name`, `suburb`, `address` | Display |
-| `lat`, `lng` | SEQ coords (approx OK for v0) |
-| `accessNotes`, `typicalWindow`, `truckConstraints`, `tips` | Driver-facing copy |
-| `category` | `liquor` \| `supermarket` \| `depot` \| `other` |
-| `starter` | `true` for seed data badge |
+| `id` | Stable string id (e.g. `ll-chermside`) |
+| `name`, `brand`, `suburb`, `region` | Display / filter |
+| `lat`, `lng` | Storefront / store pin (approx OK for starters) |
+| `dockLat`, `dockLng` | Loading-dock pin when **verified**; otherwise `null` |
+| `dockNotes` | How to find / approach the dock |
+| `parkLat`, `parkLng` | Optional recommended truck park-up pin |
+| `parkNotes` | Best park / approach for storefront |
+| `accessNotes`, `window`, `constraints` | Driver-facing copy |
+| `tips` | String array |
+| `tags` | e.g. `["liquorland","starter"]` |
+| `starter` | `true` for seed badge |
 
-Rebuild after edits. Custom zones / notes added in the app live in the browser only (`localStorage` keys `lzr-custom-zones`, `lzr-zone-notes`, `lzr-zone-edits`).
+Interim seeds keep **only Liquorland** sites. Leave dock/park GPS null until verified from a real drop — put guidance in `dockNotes` / `parkNotes` instead.
 
 ## Deploy (GitHub Pages)
 
