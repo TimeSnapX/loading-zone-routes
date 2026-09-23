@@ -16,12 +16,20 @@ type GeoState =
   | { status: 'ready'; lat: number; lng: number }
   | { status: 'denied'; message: string }
 
+const REGION_CHIPS = [
+  'Brisbane metro',
+  'Gold Coast',
+  'Sunshine Coast',
+  'Other SEQ',
+] as const
+
 export function HomePage({ zones }: Props) {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [tab, setTab] = useState<'map' | 'list'>('list')
   const [selectedId, setSelectedId] = useState<string | undefined>()
   const [liquorlandOnly, setLiquorlandOnly] = useState(true)
+  const [regionFilter, setRegionFilter] = useState<string | null>(null)
   const [nearestOn, setNearestOn] = useState(false)
   const [geo, setGeo] = useState<GeoState>({ status: 'idle' })
 
@@ -59,6 +67,7 @@ export function HomePage({ zones }: Props) {
   const filtered = useMemo(() => {
     let list = zones
     if (liquorlandOnly) list = list.filter(isLiquorland)
+    if (regionFilter) list = list.filter((z) => z.region === regionFilter)
 
     const q = query.trim().toLowerCase()
     if (q) {
@@ -85,7 +94,7 @@ export function HomePage({ zones }: Props) {
     }
 
     return list
-  }, [zones, liquorlandOnly, query, nearestOn, geo])
+  }, [zones, liquorlandOnly, regionFilter, query, nearestOn, geo])
 
   const distLabel = (z: Zone): string | null => {
     if (!nearestOn || geo.status !== 'ready') return null
@@ -96,7 +105,7 @@ export function HomePage({ zones }: Props) {
   return (
     <div className="page">
       <div className="badge" role="status">
-        Liquorland docks · SEQ cab helper — refine from real drops
+        151 Liquorland SEQ — verify dock on site
       </div>
 
       <SearchBar value={query} onChange={setQuery} />
@@ -125,6 +134,20 @@ export function HomePage({ zones }: Props) {
         >
           {geo.status === 'loading' ? 'Locating…' : nearestOn ? 'Nearest ✓' : 'Nearest'}
         </button>
+      </div>
+
+      <div className="filter-row filter-row--regions" role="group" aria-label="Region">
+        {REGION_CHIPS.map((r) => (
+          <button
+            key={r}
+            type="button"
+            className={`chip chip--sm ${regionFilter === r ? 'chip--on' : ''}`}
+            aria-pressed={regionFilter === r}
+            onClick={() => setRegionFilter((cur) => (cur === r ? null : r))}
+          >
+            {r}
+          </button>
+        ))}
       </div>
 
       {geo.status === 'denied' ? (
@@ -208,12 +231,17 @@ export function HomePage({ zones }: Props) {
           )}
         </>
       ) : (
-        <div className="list">
+        <div className="list list--scroll">
+          <p className="muted list__count" role="status">
+            {filtered.length} store{filtered.length === 1 ? '' : 's'}
+            {regionFilter ? ` · ${regionFilter}` : ''}
+          </p>
           {filtered.length === 0 ? (
             <div className="card empty">
               No stores match
               {query ? ` “${query}”` : ''}
-              {liquorlandOnly ? ' (Liquorland only on)' : ''}.
+              {liquorlandOnly ? ' (Liquorland only on)' : ''}
+              {regionFilter ? ` · ${regionFilter}` : ''}.
             </div>
           ) : (
             filtered.map((z) => (
