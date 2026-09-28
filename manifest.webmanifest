@@ -1,0 +1,37 @@
+{
+  "id": "/loading-zone-routes/",
+  "name": "Liquorland Docks",
+  "short_name": "LL Docks",
+  "description": "Liquorland loading docks: SEQ cab helper for TimeSnap / BevChain drivers.",
+  "start_url": "./",
+  "scope": "/loading-zone-routes/",
+  "display": "standalone",
+  "background_color": "#0f1410",
+  "theme_color": "#0f1410",
+  "lang": "en-AU",
+  "dir": "ltr",
+  "categories": [
+    "navigation",
+    "productivity"
+  ],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
