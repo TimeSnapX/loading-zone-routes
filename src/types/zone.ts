@@ -24,6 +24,10 @@ export interface Zone {
   tags: string[]
   starter?: boolean
   custom?: boolean
+  /** Set when dock coords come from the driver's own saved pin (localStorage override) */
+  dockMine?: boolean
+  /** Set when park-up coords come from the driver's own saved pin */
+  parkMine?: boolean
 }
 
 export type ZoneNotesMap = Record<string, string>

@@ -6,10 +6,10 @@ import { destCoords, hasParkCoords } from '../types/zone'
 import { useNavigate } from 'react-router-dom'
 import 'leaflet/dist/leaflet.css'
 
-const pinIcon = (selected: boolean, kind: 'dock' | 'store' | 'park') =>
+const pinIcon = (selected: boolean, kind: 'dock' | 'store' | 'park', mine = false) =>
   L.divIcon({
     className: 'lzr-marker',
-    html: `<div class="lzr-pin lzr-pin--${kind}${selected ? ' lzr-pin--selected' : ''}"></div>`,
+    html: `<div class="lzr-pin lzr-pin--${kind}${selected ? ' lzr-pin--selected' : ''}${mine ? ' lzr-pin--mine' : ''}"></div>`,
     iconSize: [28, 28],
     iconAnchor: [14, 28],
     popupAnchor: [0, -28],
@@ -83,7 +83,7 @@ export function ZoneMap({
             <Marker
               key={z.id}
               position={[d.lat, d.lng]}
-              icon={pinIcon(z.id === selectedId, d.kind)}
+              icon={pinIcon(z.id === selectedId, d.kind, d.kind === 'dock' && !!z.dockMine)}
               eventHandlers={{
                 click: () => {
                   onSelect?.(z.id)
@@ -96,7 +96,11 @@ export function ZoneMap({
                 {z.suburb}
                 <br />
                 <span style={{ fontSize: 12, opacity: 0.85 }}>
-                  {d.kind === 'dock' ? 'Dock pin' : 'Store pin (dock TBD)'}
+                  {d.kind === 'dock'
+                    ? z.dockMine
+                      ? '📌 Your dock pin'
+                      : 'Dock pin (bundled)'
+                    : 'Store pin (dock TBD)'}
                 </span>
                 <br />
                 <button
@@ -125,13 +129,17 @@ export function ZoneMap({
                 <Marker
                   key={`${z.id}-park`}
                   position={[z.parkLat!, z.parkLng!]}
-                  icon={pinIcon(false, 'park')}
+                  icon={pinIcon(false, 'park', !!z.parkMine)}
                   eventHandlers={{
                     click: () => onSelect?.(z.id),
                   }}
                 >
                   <Popup>
                     <strong>Park-up · {z.name}</strong>
+                    <br />
+                    <span style={{ fontSize: 12, opacity: 0.85 }}>
+                      {z.parkMine ? '📌 Your park-up pin' : 'Park-up pin (bundled)'}
+                    </span>
                     <br />
                     {z.parkNotes || 'Recommended truck park / approach'}
                   </Popup>

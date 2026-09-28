@@ -35,12 +35,20 @@ export function ZoneCard({ zone, onClick, distanceLabel }: Props) {
         <span className="tag tag--liquor">{zone.brand || 'Store'}</span>
         {zone.window ? <span className="tag">{zone.window}</span> : null}
         {zone.dockLat != null && zone.dockLng != null ? (
-          <span className="tag tag--ok">Dock pin</span>
+          zone.dockMine ? (
+            <span className="tag tag--mine">📌 Your dock pin</span>
+          ) : (
+            <span className="tag tag--ok">Dock pin</span>
+          )
         ) : (
           <span className="tag">Store pin</span>
         )}
         {zone.parkLat != null && zone.parkLng != null ? (
-          <span className="tag tag--park">Park-up</span>
+          zone.parkMine ? (
+            <span className="tag tag--mine">📌 Your park-up</span>
+          ) : (
+            <span className="tag tag--park">Park-up</span>
+          )
         ) : null}
         {zone.custom ? <span className="tag tag--custom">Custom</span> : null}
         {zone.starter ? <span className="tag">Starter</span> : null}

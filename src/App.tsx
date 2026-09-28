@@ -5,8 +5,21 @@ import { ZoneDetailPage } from './pages/ZoneDetailPage'
 import { ZoneFormPage } from './pages/ZoneFormPage'
 
 export default function App() {
-  const { zones, notes, getZone, saveNote, addCustomZone, updateZone, deleteCustomZone } =
-    useZones()
+  const {
+    zones,
+    notes,
+    getZone,
+    saveNote,
+    addCustomZone,
+    updateZone,
+    deleteCustomZone,
+    pins,
+    setPin,
+    clearPin,
+    importPins,
+    getBundledZone,
+  } = useZones()
+  const nameOf = (id: string) => getZone(id)?.name ?? id
 
   return (
     <HashRouter>
@@ -18,7 +31,7 @@ export default function App() {
           </div>
         </header>
         <Routes>
-          <Route path="/" element={<HomePage zones={zones} />} />
+          <Route path="/" element={<HomePage zones={zones} pins={pins} nameOf={nameOf} importPins={importPins} />} />
           <Route
             path="/zone/:id"
             element={
@@ -28,6 +41,12 @@ export default function App() {
                 saveNote={saveNote}
                 updateZone={updateZone}
                 deleteCustomZone={deleteCustomZone}
+                pins={pins}
+                setPin={setPin}
+                clearPin={clearPin}
+                importPins={importPins}
+                getBundledZone={getBundledZone}
+                nameOf={nameOf}
               />
             }
           />
@@ -35,7 +54,7 @@ export default function App() {
             path="/add"
             element={
               <ZoneFormPage
-                getZone={getZone}
+                getZone={getBundledZone}
                 addCustomZone={addCustomZone}
                 updateZone={updateZone}
               />
@@ -45,7 +64,7 @@ export default function App() {
             path="/edit/:id"
             element={
               <ZoneFormPage
-                getZone={getZone}
+                getZone={getBundledZone}
                 addCustomZone={addCustomZone}
                 updateZone={updateZone}
               />

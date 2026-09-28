@@ -82,6 +82,22 @@ npm run preview
 
 Leave dock/park GPS null until verified from a real drop — put guidance in `dockNotes` / `parkNotes` instead.
 
+## Your pins (dock / park-up GPS overrides)
+
+On a store's detail page, **📍 Set dock location** and **🅿️ Set park-up location** open a sheet with three ways to set the pin: type/paste (decimal, Google Maps links with `!3d..!4d..`, `?q=`, `@lat,lng`, DMS), **Photo** (EXIF GPS read on-device with `exifr`, nothing uploaded) and **My location** (high-accuracy geolocation). A draggable preview marker fine-tunes the pin before saving.
+
+Pins are stored in `localStorage` key `lzr-pin-overrides` (keyed by store id) and merged over the bundled `zones.json` everywhere (map pins, cards, Get there / Maps links). Bundled data is never mutated.
+
+**📌 My pins** (home page and detail page) exports them (`Copy my pins`, `Download pins JSON`) and imports them (paste or file). Export shape:
+
+```json
+{ "app": "loading-zone-routes", "kind": "pin-overrides", "version": 1, "exportedAt": "…",
+  "pins": [ { "storeId": "ll-seq-001", "name": "…", "field": "dock", "latField": "dockLat", "lngField": "dockLng",
+              "lat": -27.4675, "lng": 153.0269, "source": "manual|photo|gps", "accuracy": 6, "updatedAt": "…" } ] }
+```
+
+To bake pins into the bundled data, set `zones.json[storeId][latField/lngField]` from each row.
+
 ## Deploy (GitHub Pages)
 
 1. Push this folder (or its contents) to a repo.

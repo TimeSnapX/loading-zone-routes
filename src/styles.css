@@ -659,3 +659,217 @@ select {
   background: linear-gradient(var(--bg) 70%, transparent);
   padding: 0.15rem 0 0.45rem;
 }
+
+/* —— Your pins: sheets, preview map, status —— */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.sheet {
+  width: 100%;
+  max-width: 480px;
+  max-height: 94dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: 18px 18px 0 0;
+  box-shadow: var(--shadow);
+}
+
+.sheet__head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 0.75rem 0.4rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.sheet__title {
+  flex: 1;
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.sheet__close {
+  min-width: var(--tap);
+  font-size: 1.1rem;
+}
+
+.sheet__body {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.75rem 1rem calc(1.25rem + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sheet__sub {
+  margin: 0;
+}
+
+.sheet__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sheet__rule {
+  width: 100%;
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0.25rem 0;
+}
+
+.tabs--3 .tabs__btn {
+  font-size: 0.95rem;
+  padding-left: 0.3rem;
+  padding-right: 0.3rem;
+}
+
+.pin-status {
+  font-size: 0.9rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.pin-preview {
+  height: 230px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.pin-preview .leaflet-container {
+  background: #1b2420;
+}
+
+.pin-msg {
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  font-size: 0.92rem;
+  border: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+
+.pin-msg ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.pin-msg li + li {
+  margin-top: 0.3rem;
+}
+
+.pin-msg--ok {
+  border-color: rgba(61, 214, 140, 0.45);
+  background: rgba(61, 214, 140, 0.1);
+}
+
+.pin-msg--err {
+  border-color: rgba(255, 107, 74, 0.5);
+  background: rgba(255, 107, 74, 0.1);
+}
+
+.pin-msg--warn {
+  border-color: rgba(255, 191, 0, 0.5);
+  background: rgba(255, 191, 0, 0.1);
+}
+
+.linklike {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent-hi);
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.pin-line {
+  margin: 0.2rem 0 0;
+  font-size: 0.92rem;
+  overflow-wrap: anywhere;
+}
+
+.pin-line__coords {
+  font-variant-numeric: tabular-nums;
+}
+
+.tag--mine {
+  color: #fff;
+  background: rgba(212, 165, 255, 0.18);
+  border-color: rgba(212, 165, 255, 0.6);
+}
+
+.lzr-pin--mine {
+  border-color: #fff;
+  box-shadow: 0 0 0 3px #d4a5ff, 0 2px 8px rgba(0, 0, 0, 0.45);
+}
+
+.lzr-pin--drag {
+  cursor: grab;
+}
+
+.lzr-pin--ghost {
+  opacity: 0.7;
+}
+
+.lzr-pin--ref {
+  background: var(--accent);
+  opacity: 0.75;
+  transform: rotate(-45deg) scale(0.7);
+}
+
+.pins-fallback {
+  width: 100%;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.6rem;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(1.25rem + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 2100;
+  background: var(--ok);
+  color: #04140b;
+  font-weight: 800;
+  padding: 0.75rem 1.2rem;
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+}
+
+.fab-bar {
+  flex-wrap: wrap;
+}
+
+.tabs.tabs--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  background: var(--bg);
+}
+
+.sheet .form-row {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.sheet .form-row .field,
+.sheet .form-row input {
+  min-width: 0;
+  width: 100%;
+}

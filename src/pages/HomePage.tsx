@@ -5,9 +5,14 @@ import { ZoneCard } from '../components/ZoneCard'
 import { ZoneMap } from '../components/ZoneMap'
 import { distanceKm, formatDistanceKm } from '../lib/geo'
 import { destCoords, isLiquorland, type Zone } from '../types/zone'
+import { PinsTransferSheet } from '../components/PinsTransferSheet'
+import { countPins, type ImportResult, type PinOverrides } from '../lib/pins'
 
 interface Props {
   zones: Zone[]
+  pins: PinOverrides
+  nameOf: (id: string) => string
+  importPins: (text: string) => ImportResult
 }
 
 type GeoState =
@@ -23,7 +28,9 @@ const REGION_CHIPS = [
   'Other SEQ',
 ] as const
 
-export function HomePage({ zones }: Props) {
+export function HomePage({ zones, pins, nameOf, importPins }: Props) {
+  const [pinsOpen, setPinsOpen] = useState(false)
+  const pinCount = countPins(pins)
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [tab, setTab] = useState<'map' | 'list'>('list')
@@ -264,7 +271,22 @@ export function HomePage({ zones }: Props) {
         >
           + Add custom store
         </button>
+        <button
+          type="button"
+          className="btn btn--secondary btn--block"
+          onClick={() => setPinsOpen(true)}
+        >
+          📌 My pins ({pinCount})
+        </button>
       </div>
+      {pinsOpen ? (
+        <PinsTransferSheet
+          pins={pins}
+          nameOf={nameOf}
+          importPins={importPins}
+          onClose={() => setPinsOpen(false)}
+        />
+      ) : null}
     </div>
   )
 }

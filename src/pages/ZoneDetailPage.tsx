@@ -8,6 +8,10 @@ import {
   type ZoneNotesMap,
 } from '../types/zone'
 import { ZoneMap } from '../components/ZoneMap'
+import { PinSheet } from '../components/PinSheet'
+import { PinsTransferSheet } from '../components/PinsTransferSheet'
+import { formatLatLng } from '../lib/coords'
+import type { ImportResult, PinField, PinOverride, PinOverrides } from '../lib/pins'
 
 interface Props {
   getZone: (id: string) => Zone | undefined
@@ -15,6 +19,50 @@ interface Props {
   saveNote: (id: string, note: string) => void
   updateZone: (id: string, patch: Partial<Zone>) => void
   deleteCustomZone: (id: string) => void
+  pins: PinOverrides
+  setPin: (id: string, field: PinField, pin: PinOverride) => void
+  clearPin: (id: string, field: PinField) => void
+  importPins: (text: string) => ImportResult
+  getBundledZone: (id: string) => Zone | undefined
+  nameOf: (id: string) => string
+}
+
+const SRC: Record<string, string> = { manual: 'typed/pasted', photo: 'photo', gps: 'GPS' }
+
+function PinLine({
+  mine,
+  lat,
+  lng,
+  pin,
+  kind,
+}: {
+  mine: boolean
+  lat: number | null
+  lng: number | null
+  pin?: PinOverride
+  kind: 'dock' | 'park-up'
+}) {
+  if (lat == null || lng == null) {
+    return (
+      <p className="pin-line muted" data-testid={`pinline-${kind}`}>
+        No {kind} GPS yet.
+      </p>
+    )
+  }
+  return (
+    <p className="pin-line" data-testid={`pinline-${kind}`}>
+      {mine ? <span className="tag tag--mine">📌 Your pin</span> : <span className="tag">Bundled</span>}{' '}
+      <span className="pin-line__coords">{formatLatLng(lat, lng)}</span>
+      {mine && pin ? (
+        <span className="muted">
+          {' '}
+          · {SRC[pin.source] ?? pin.source}
+          {pin.accuracy != null ? ` ±${Math.round(pin.accuracy)} m` : ''} · saved{' '}
+          {new Date(pin.updatedAt).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+        </span>
+      ) : null}
+    </p>
+  )
 }
 
 export function ZoneDetailPage({
@@ -23,7 +71,16 @@ export function ZoneDetailPage({
   saveNote,
   updateZone,
   deleteCustomZone,
+  pins,
+  setPin,
+  clearPin,
+  importPins,
+  getBundledZone,
+  nameOf,
 }: Props) {
+  const [pinSheet, setPinSheet] = useState<PinField | null>(null)
+  const [pinsOpen, setPinsOpen] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
   const { id = '' } = useParams()
   const navigate = useNavigate()
   const zone = getZone(id)
@@ -48,6 +105,18 @@ export function ZoneDetailPage({
   const personalNote = notes[zone.id] ?? ''
   const dest = destCoords(zone)
   const parkOk = hasParkCoords(zone)
+  const myPins = pins[zone.id] ?? {}
+  const bundledZone = getBundledZone(zone.id)
+  const bundledFor = (f: PinField) => {
+    if (!bundledZone) return null
+    const lat = f === 'dock' ? bundledZone.dockLat : bundledZone.parkLat
+    const lng = f === 'dock' ? bundledZone.dockLng : bundledZone.parkLng
+    return lat != null && lng != null ? { lat, lng } : null
+  }
+  const flash = (t: string) => {
+    setToast(t)
+    setTimeout(() => setToast(null), 2500)
+  }
 
   return (
     <div className="page">
@@ -66,7 +135,11 @@ export function ZoneDetailPage({
           {zone.starter ? <span className="badge">Starter data</span> : null}
           {zone.custom ? <span className="badge badge--muted">Custom</span> : null}
           <span className="badge badge--muted">
-            {dest.kind === 'dock' ? 'Dock pin ready' : 'Store pin · dock TBD'}
+            {dest.kind === 'dock'
+              ? zone.dockMine
+                ? '📌 Your dock pin'
+                : 'Dock pin ready'
+              : 'Store pin · dock TBD'}
           </span>
         </div>
       </header>
@@ -81,7 +154,7 @@ export function ZoneDetailPage({
             openDirections(dest.lat, dest.lng, `${zone.name} ${zone.suburb}`)
           }
         >
-          Get there → {dest.kind === 'dock' ? 'Dock' : 'Store'} (Maps)
+          Get there → {dest.kind === 'dock' ? (zone.dockMine ? 'Your dock pin' : 'Dock') : 'Store'} (Maps)
         </button>
         {parkOk ? (
           <button
@@ -95,7 +168,7 @@ export function ZoneDetailPage({
               )
             }
           >
-            Park-up → Maps
+            Park-up{zone.parkMine ? ' (your pin)' : ''} → Maps
           </button>
         ) : null}
       </div>
@@ -108,6 +181,14 @@ export function ZoneDetailPage({
             No verified dock GPS yet — Get there uses the store pin.
           </p>
         ) : null}
+        <PinLine mine={!!zone.dockMine} lat={zone.dockLat} lng={zone.dockLng} pin={myPins.dock} kind="dock" />
+        <button
+          type="button"
+          className="btn btn--secondary btn--block"
+          onClick={() => setPinSheet('dock')}
+        >
+          📍 Set dock location
+        </button>
       </section>
 
       <section className="card detail__section">
@@ -118,6 +199,14 @@ export function ZoneDetailPage({
             No park-up coords yet — guidance above only.
           </p>
         ) : null}
+        <PinLine mine={!!zone.parkMine} lat={zone.parkLat} lng={zone.parkLng} pin={myPins.park} kind="park-up" />
+        <button
+          type="button"
+          className="btn btn--secondary btn--block"
+          onClick={() => setPinSheet('park')}
+        >
+          🅿️ Set park-up location
+        </button>
       </section>
 
       <section className="card detail__section">
@@ -256,6 +345,39 @@ export function ZoneDetailPage({
           Edit store details
         </button>
       )}
+      <button type="button" className="btn btn--ghost btn--block" onClick={() => setPinsOpen(true)}>
+        📌 My pins — copy / download / import
+      </button>
+
+      {toast ? (
+        <div className="toast" role="status" data-testid="toast">
+          {toast}
+        </div>
+      ) : null}
+
+      {pinSheet ? (
+        <PinSheet
+          key={pinSheet}
+          zone={zone}
+          field={pinSheet}
+          bundled={bundledFor(pinSheet)}
+          current={myPins[pinSheet]}
+          onSave={(pin) => {
+            setPin(zone.id, pinSheet, pin)
+            setPinSheet(null)
+            flash(pinSheet === 'dock' ? 'Dock pin saved' : 'Park-up pin saved')
+          }}
+          onClear={() => {
+            clearPin(zone.id, pinSheet)
+            setPinSheet(null)
+            flash(pinSheet === 'dock' ? 'Dock pin cleared' : 'Park-up pin cleared')
+          }}
+          onClose={() => setPinSheet(null)}
+        />
+      ) : null}
+      {pinsOpen ? (
+        <PinsTransferSheet pins={pins} nameOf={nameOf} importPins={importPins} onClose={() => setPinsOpen(false)} />
+      ) : null}
     </div>
   )
 }
